@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Debris = game:GetService("Debris")
+
 local function BindCooldownToMove(move,Callback)
 	local cooldown = move:GetAttributeChangedSignal("COOLDOWN"):Connect(function()
 		if move:GetAttribute("COOLDOWN") == 1 then
@@ -89,25 +90,15 @@ local Window = Library:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab('Main'),
+    Characters = Window:AddTab('Character Stuff'),
     ['UI Settings'] = Window:AddTab('UI Settings'),
 }
 
 local MainBox = Tabs.Main:AddLeftGroupbox('PVP')
+local CharBox = Tabs.Characters:AddLeftGroupbox('Main')
 
 MainBox:AddToggle('Upfling', {
     Text = 'Upfling Extend',
-    Default = false
-})
-
-MainBox:AddToggle('Backugo', {
-    Text = 'Backugo Damage Aura',
-    Tooltip = 'press reset to speed up',
-    Default = false
-})
-
-MainBox:AddToggle('RocketTp', {
-    Text = 'Raiden Rocket Tp',
-    Tooltip = 'look down after pressing 2',
     Default = false
 })
 
@@ -116,14 +107,15 @@ MainBox:AddToggle('AP', {
     Tooltip = 'really bad',
     Default = false
 })
+
 local Hitboxes = {}
+
 MainBox:AddToggle('Hitboxes', {
     Text = 'show m1 hitboxes',
     Tooltip = 'm1 hitboxes',
     Default = false
 })
 
-local tpwalking = false
 MainBox:AddToggle('NoStun', {
     Text = 'No Stun',
     Default = false
@@ -138,19 +130,7 @@ MainBox:AddToggle('NanamiAuto', {
     Text = 'Nanami Auto',
     Default = false
 })
-MainBox:AddToggle('sandtp',{
-    Text = 'Insant Sand Coffin',
-    Default = false
-})
-MainBox:AddToggle('birdtp',{
-    Text = 'TP Deidara Bird',
-    Default = false
-})
 
-MainBox:AddToggle('kitp',{
-    Text = 'TP Scattershot',
-    Default = false
-})
 MainBox:AddButton({
     Text = 'Reset',
     Func = function()
@@ -158,9 +138,42 @@ MainBox:AddButton({
     end
 })
 
+CharBox:AddToggle('sandtp',{
+    Text = 'Insant Sand Coffin',
+    Default = false
+})
 
 
-MainBox:AddButton({
+CharBox:AddToggle('kitp',{
+    Text = 'TP Krillin Moves',
+    Default = false
+})
+
+CharBox:AddToggle('Backugo', {
+    Text = 'Backugo Damage Aura',
+    Tooltip = 'press reset to speed up',
+    Default = false
+})
+
+CharBox:AddToggle('RocketTp', {
+    Text = 'Raiden Rocket Tp',
+    Tooltip = 'look down after pressing 2',
+    Default = false
+})
+
+CharBox:AddToggle('stp', {
+    Text = 'Invisible Stand',
+    Tooltip = 'makes ur stand invis but breaks some moves',
+    Default = false
+})
+
+CharBox:AddToggle('etp', {
+    Text = 'Everything TP',
+    Tooltip = 'looks for whatever u have network ownership of and tps to enemy [LAGGY]',
+    Default = false
+})
+
+CharBox:AddButton({
     Text = 'Morel Void',
     Func = function()
             BindCooldownToMove(LocalPlayer.Backpack:FindFirstChild('Smoky Chain'),function()
@@ -278,45 +291,6 @@ BindRemoteToMove("Scattershot", function(data,callback)
     return callback
 end)
 
-BindRemoteToMove("Spirit Shotgun", function(data,callback)
-    if Toggles.kitp.Value then
-    wait(0.45)
-    for i,v in pairs(workspace.Thrown:GetDescendants()) do
-    if v:IsA('BasePart') and isnetworkowner(v) then
-        if v.Name == 'KiBlast' then
-        task.defer(function()
-        for i = 1,100 do
-            v.CFrame = FindNearestLive(true).CFrame
-            wait(0.02)
-        end
-            end)
-        end 
-    end
-    end
-    end
-    return callback
-end)
-
-BindRemoteToMove("Bird", function(data,callback)
-    if Toggles.birdtp.Value then
-    wait(0.55)
-    for i,v in pairs(workspace.Thrown:GetDescendants()) do
-    if v:IsA('BasePart') and isnetworkowner(v) then
-        if v.Parent.Name == 'Bird' then
-        local targetC = FindNearestLive(true).CFrame
-        task.defer(function()
-        for i = 1,50 do
-            v.CFrame = targetC
-            wait(0.02)
-        end
-            end)
-        end 
-    end
-    end
-    end
-    return callback
-end)
-
 local function onCharacter(char)
     local humanoid = char:WaitForChild("Humanoid")
     local root = char:WaitForChild("HumanoidRootPart")
@@ -385,6 +359,7 @@ end
 
 LocalPlayer.CharacterAdded:Connect(onCharacter)
 
+
 RunService.RenderStepped:Connect(function()
     if Toggles.Backugo.Value then
         local traits = LocalPlayer.Backpack:FindFirstChild("ServerTraits")
@@ -413,6 +388,31 @@ RunService.RenderStepped:Connect(function()
             if v:IsA('BasePart') and isnetworkowner(v) then
                 if FindNearestLive() then
                     v.CFrame = FindNearestLive().CFrame
+                end 
+            end
+        end
+    end
+    if Toggles.kitp.Value then
+        for i,v in pairs(workspace.Thrown:GetChildren()) do
+            if v.Name ~= 'Blast' then continue end
+            if v:IsA('BasePart') and isnetworkowner(v) then
+                if FindNearestLive(true) then
+                    v.CFrame = FindNearestLive(true).CFrame
+                end 
+            end
+        end
+    end
+    if Toggles.stp.Value then
+        if workspace.Stands:FindFirstChild(LocalPlayer.Name) then
+            workspace.Stands:FindFirstChild(LocalPlayer.Name).HumanoidRootPart.CFrame = CFrame.new(Vector3.new(1,9e4,1))
+        end
+    end
+    if Toggles.etp.Value then
+        for i,v in pairs(workspace.Thrown:GetDescendants()) do
+            if v:IsA('BasePart') and isnetworkowner(v) then
+                if v.Name == 'Tar' or v.Name == 'DebreeePart2' then return end
+                if FindNearestLive(true) then
+                    v.CFrame = FindNearestLive(true).CFrame
                 end 
             end
         end

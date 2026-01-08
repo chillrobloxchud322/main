@@ -15,40 +15,15 @@ local function BindCooldownToMove(move,Callback)
 end
 
 local Target_Anims = {
-    ["rbxassetid://1461128166"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
-    ["rbxassetid://1461128859"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
-    ["rbxassetid://1461136273"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
-    ["rbxassetid://1461136875"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
-    ["rbxassetid://1470422387"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
-    ["rbxassetid://1470439852"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
-    ["rbxassetid://1470449816"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
-    ["rbxassetid://1470447472"] = {
-        delay = 0.1,
-        Scaling = 3,
-    },
+    ["rbxassetid://1461128166"] = {},
+    ["rbxassetid://1461128859"] = {},
+    ["rbxassetid://1461136273"] = {},
+    ["rbxassetid://1461136875"] = {},
+    ["rbxassetid://1470422387"] = {},
+    ["rbxassetid://1470439852"] = {},
+    ["rbxassetid://1470449816"] = {},
+    ["rbxassetid://1470447472"] = {},
     ["rbxassetid://1461145506"] = {
-        delay = 0.1,
         Scaling = 2
     }
 }
@@ -228,7 +203,7 @@ local function CreateHitBox(root,config)
     if not root or not root.Parent then return end
 
     local Hitbox = Instance.new("Part")
-    Hitbox.Size = Vector3.new(4.7, 4.7, 4.7) * (config.Scaling or 1)
+    Hitbox.Size = Vector3.new(4.7, 4.7, 4.7) * (config.Scaling)
     Hitbox.Material = Enum.Material.ForceField
     Hitbox.Shape = Enum.PartType.Ball
     Hitbox.CanCollide = false
@@ -269,8 +244,8 @@ local function addedChild(child)
         if not data then return end
 
         CreateHitBox(root,{
-            delay = data.delay,
-            Scaling = data.Scaling
+            delay = data.delay or 0.1,
+            Scaling = data.Scaling or 3
         })
     end)
 end

@@ -14,6 +14,8 @@ local function BindCooldownToMove(move,Callback)
 		end
 	end)
 end
+ESP_TABLE = {}
+
 
 local Target_Anims = {
     ["rbxassetid://1461128166"] = {},
@@ -96,7 +98,7 @@ local Tabs = {
 
 local MainBox = Tabs.Main:AddLeftGroupbox('PVP')
 local CharBox = Tabs.Characters:AddLeftGroupbox('Main')
-
+local ESPBox = Tabs.Main:AddRightGroupbox('ESP')
 MainBox:AddToggle('Upfling', {
     Text = 'Upfling Extend',
     Default = false
@@ -129,6 +131,11 @@ MainBox:AddToggle('AutoBlackFlash', {
 MainBox:AddToggle('NanamiAuto', {
     Text = 'Nanami Auto',
     Default = false
+})
+
+ESPBox:AddToggle('ESP',{
+    Text = 'ESP',
+    Default = false,
 })
 
 MainBox:AddButton({
@@ -242,6 +249,19 @@ local function CreateHitBox(root,config)
     end)
 end
 
+
+
+local function CreateESP(char)
+    if not Players:GetPlayerFromCharacter(char) then return end
+    local ESP_Gui = game:GetObjects('rbxassetid://72926575986789')[1];
+
+    ESP_Gui.Parent = char.HumanoidRootPart
+    ESP_Gui.Enabled = false
+    table.insert(ESP_TABLE,ESP_Gui)
+end
+
+
+
 local function addedChild(child)
     if not child:IsA("Model") then return end
 
@@ -261,6 +281,8 @@ local function addedChild(child)
             Scaling = data.Scaling or 3
         })
     end)
+
+    CreateESP(child)
 end
 
 BindRemoteToMove("Sand Coffin", function(data,callback)
@@ -337,6 +359,7 @@ local function onCharacter(char)
 		    end)
         end
     end)
+
     humanoid.Died:Connect(function()
         auto:Disconnect()
     end)
@@ -352,6 +375,7 @@ for _, v in ipairs(workspace.Live:GetChildren()) do
 end
 
 workspace.Live.ChildAdded:Connect(addedChild)
+
 
 if LocalPlayer.Character then
     onCharacter(LocalPlayer.Character)
@@ -415,6 +439,45 @@ RunService.RenderStepped:Connect(function()
                     v.CFrame = FindNearestLive(true).CFrame
                 end 
             end
+        end
+    end
+    if Toggles.ESP.Value then
+        for i,ESP in pairs(ESP_TABLE) do
+            ESP.Enabled = true
+            local H = ESP.Parent.Parent:FindFirstChild('Humanoid')
+            local P = Players:FindFirstChild(ESP.Parent.Parent.Name)
+            local HP = H.Health /120
+            local T = ESP.Target
+            local M = P.Charge.Value / 325
+            u2 = T.Mode:FindFirstChild('Ultimate2')
+            if P:FindFirstChild('SecondBar') then
+                Ultimate2.Bar.Size = UDim2.new(P:FindFirstChild('SecondBar').Value/150,0,0.86,0)
+                else
+                if u2 then
+                    u2:Destroy()
+                end
+            end
+            T.Health.Bar.Size = UDim2.new(HP,0,0.95,0)
+            T.Mode.Ultimate.Bar.Size = UDim2.new(M,0,0.86,0)
+            
+            for i = 2,5 do
+                local M = T.Moves:FindFirstChild(tostring(i-1))
+                if M then
+                   CD = M.CD
+                   MV = P.Backpack:GetChildren()[i]
+                   CDR = 0
+                   pcall(function() 
+                        CDR = -20 + MV:GetAttribute("COOLDOWN")
+                    end)
+                   CD.Size = UDim2.new(1,0,CDR/20,0)
+                   N = M.TextLabel
+                   N.Text = MV.Name
+                end
+            end
+        end
+        else
+        for i,ESP in pairs(ESP_TABLE) do
+            ESP.Enabled = false
         end
     end
 end)

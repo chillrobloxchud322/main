@@ -6,16 +6,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Debris = game:GetService("Debris")
-
-local function BindCooldownToMove(move,Callback)
-	local cooldown = move:GetAttributeChangedSignal("COOLDOWN"):Connect(function()
-		if move:GetAttribute("COOLDOWN") == 1 then
-			return Callback()
-		end
-	end)
-end
-ESP_TABLE = {}
-
+local live = workspace:WaitForChild("Live")
 
 local Target_Anims = {
     ["rbxassetid://1461128166"] = {},
@@ -33,29 +24,9 @@ local Target_Anims = {
 
 local Logged = {}
 
-local function BindRemoteToMove(moveName, callback)
+local function BindFuncToMove(moveName, callback)
     Logged[moveName] = callback
 end
-
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args = { ... }
-
-    if not checkcaller()
-        and method == "FireServer"
-        and self.Name == "Input"
-        and args[1] == "fire"
-        and typeof(args[2]) == "table"
-        and args[2].ToolName
-        and Logged[args[2].ToolName]
-    then
-        Logged[args[2].ToolName](args[2],oldNamecall(self, ...))
-    end
-
-    return oldNamecall(self, ...)
-end))
-
 
 local Camera = game.Workspace.Camera
 local OldFov = Camera.FieldOfView
@@ -63,11 +34,19 @@ local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
 
+local function dv()
+    for i,v in pairs(char:GetDescendants()) do
+		if v:IsA("BodyVelocity") or v:IsA("BodyGyro") or v:IsA("RocketPropulsion") or v:IsA("BodyThrust") or v:IsA("BodyAngularVelocity") or v:IsA("AngularVelocity") or v:IsA("BodyForce") or v:IsA("VectorForce") or v:IsA("LineForce") then
+			v:Destroy()
+		end
+	end
+end
+
 local function FindNearestLive(NearMouse)
         local closestHRP = nil
         local closestDist = math.huge
         
-        for _, v in ipairs(workspace.Live:GetChildren()) do
+        for _, v in ipairs(live:GetChildren()) do
             if v.Name ~= player.Name and v:FindFirstChild("HumanoidRootPart") then
                 local dist = (v.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude
                 if NearMouse then
@@ -85,7 +64,7 @@ local function FindNearestLive(NearMouse)
 end
 
 local Window = Library:CreateWindow({
-    Title = 'ABA X 67',
+    Title = 'ABA X',
     Center = true,
     AutoShow = true,
 })
@@ -98,7 +77,7 @@ local Tabs = {
 
 local MainBox = Tabs.Main:AddLeftGroupbox('PVP')
 local CharBox = Tabs.Characters:AddLeftGroupbox('Main')
-local ESPBox = Tabs.Main:AddRightGroupbox('ESP')
+
 MainBox:AddToggle('Upfling', {
     Text = 'Upfling Extend',
     Default = false
@@ -123,6 +102,16 @@ MainBox:AddToggle('NoStun', {
     Default = false
 })
 
+MainBox:AddToggle('noslow', {
+    Text = 'No Slow',
+    Default = false
+})
+
+MainBox:AddToggle('nofreeze', {
+    Text = 'No Freeze',
+    Default = false
+})
+
 MainBox:AddToggle('AutoBlackFlash', {
     Text = 'Auto Black Flash',
     Default = false
@@ -133,15 +122,10 @@ MainBox:AddToggle('NanamiAuto', {
     Default = false
 })
 
-ESPBox:AddToggle('ESP',{
-    Text = 'ESP',
-    Default = false,
-})
-
 MainBox:AddButton({
-    Text = 'Reset',
+    Text = 'Fast Reset',
     Func = function()
-        LocalPlayer.Character:WaitForChild("Humanoid").Health = 0
+        char:BreakJoints()
     end
 })
 
@@ -150,6 +134,10 @@ CharBox:AddToggle('sandtp',{
     Default = false
 })
 
+CharBox:AddToggle('krush',{
+    Text = 'No Kaioken Rush Penalty',
+    Default = false
+})
 
 CharBox:AddToggle('kitp',{
     Text = 'TP Krillin Moves',
@@ -174,6 +162,12 @@ CharBox:AddToggle('stp', {
     Default = false
 })
 
+CharBox:AddToggle('sstp', {
+    Text = 'Invisible Susano',
+    Tooltip = 'makes ur susano invis but breaks some moves',
+    Default = false
+})
+
 CharBox:AddToggle('etp', {
     Text = 'Everything TP',
     Tooltip = 'looks for whatever u have network ownership of and tps to enemy [LAGGY]',
@@ -183,7 +177,6 @@ CharBox:AddToggle('etp', {
 CharBox:AddButton({
     Text = 'Morel Void',
     Func = function()
-            BindCooldownToMove(LocalPlayer.Backpack:FindFirstChild('Smoky Chain'),function()
             wait(1)
             local hrp = char:WaitForChild("HumanoidRootPart")
             local originalCFrame = hrp.CFrame
@@ -192,7 +185,6 @@ CharBox:AddButton({
 
             task.wait(10)
             hrp.CFrame = originalCFrame
-        end)
     end
 })
 
@@ -200,14 +192,12 @@ local TP_UP_TIME = 0.03
 local TP_DOWN_TIME = 0.5
 
 local watchedAnimations = {
-    ["rbxassetid://1461252313"] = 0.9,
-    ["none"] = 0.9
+    ["rbxassetid://1461252313"] = 0.9
 }
 
 
 
 local function Parry(held)
-    local char = LocalPlayer.Character
     if not char then return end
     local remote = LocalPlayer.Backpack.ServerTraits:FindFirstChild('Input')
     if not remote then return end
@@ -249,19 +239,6 @@ local function CreateHitBox(root,config)
     end)
 end
 
-
-
-local function CreateESP(char)
-    if not Players:GetPlayerFromCharacter(char) then return end
-    local ESP_Gui = game:GetObjects('rbxassetid://72926575986789')[1];
-
-    ESP_Gui.Parent = char.HumanoidRootPart
-    ESP_Gui.Enabled = false
-    table.insert(ESP_TABLE,ESP_Gui)
-end
-
-
-
 local function addedChild(child)
     if not child:IsA("Model") then return end
 
@@ -281,26 +258,22 @@ local function addedChild(child)
             Scaling = data.Scaling or 3
         })
     end)
-
-    CreateESP(child)
 end
 
-BindRemoteToMove("Sand Coffin", function(data,callback)
-    if Toggles.sandtp.Value then
+BindFuncToMove("Sand Coffin", function(data)
+    if Toggles.sandtp.Value then return end
     wait(0.35)
     for i,v in pairs(workspace:GetDescendants()) do
-    if v:IsA('BasePart') and isnetworkowner(v) then
-        if v.Name == 'SwipeCloud' then
-            v.CFrame = FindNearestLive(true).CFrame
-        end 
+        if v:IsA('BasePart') and isnetworkowner(v) then
+            if v.Name == 'SwipeCloud' then
+                v.CFrame = FindNearestLive(true).CFrame
+            end 
+        end
     end
-    end
-    end
-    return callback
 end)
 
-BindRemoteToMove("Scattershot", function(data,callback)
-    if Toggles.kitp.Value then
+BindFuncToMove("Scattershot", function(data)
+    if not Toggles.kitp.Value then return end
     wait(0.35)
     for i,v in pairs(workspace:GetDescendants()) do
     if v:IsA('BasePart') and isnetworkowner(v) then
@@ -309,19 +282,25 @@ BindRemoteToMove("Scattershot", function(data,callback)
         end 
     end
     end
-    end
-    return callback
 end)
 
-local function onCharacter(char)
-    local humanoid = char:WaitForChild("Humanoid")
-    local root = char:WaitForChild("HumanoidRootPart")
+BindFuncToMove("Rush", function()
+    if not char:FindFirstChild('KAIOKEN') or not Toggles.krush.Value then return end
+    local BV = char.HumanoidRootPart:WaitForChild('BodyVelocity')
+    task.delay(0.1,dv)
+end)
 
-    root.Touched:Connect(function(part)
+local function onCharacter(character)
+    char = character
+    local humanoid = character:WaitForChild("Humanoid")
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    hrp.Touched:Connect(function(part)
         if Hitboxes[part] and Toggles.AP.Value then
             Parry(0.2)
         end
     end)
+
     humanoid.AnimationPlayed:Connect(function(track)
         if not Toggles.Upfling.Value then return end
         if not track.Animation then return end
@@ -333,13 +312,26 @@ local function onCharacter(char)
         task.wait(delayTime)
 
         a = 15 
-        b,c = char.HumanoidRootPart.Position.X,char.HumanoidRootPart.Position.Z 
-        char.HumanoidRootPart.CFrame = closestHRP.CFrame * CFrame.new(0, a, 0) 
-        char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(b,char.HumanoidRootPart.Position.Y,c)) 
+        b,c = hrp.Position.X,hrp.Position.Z 
+        hrp.CFrame = closestHRP.CFrame * CFrame.new(0, a, 0) 
+        hrp.CFrame = CFrame.new(Vector3.new(b,hrp.Position.Y,c)) 
     end)
 
-     local hrp = char:WaitForChild("HumanoidRootPart")
-    local live = workspace:WaitForChild("Live")
+    local runBinded = character.ChildAdded:Connect(function(child)
+        if child.Name == 'UsingSkill' then
+            if Logged[child.Value] then
+                Logged[child.Value]()
+            end
+        end
+        if Toggles.noslow.Value then
+            if child.Name == 'Slow' then
+                task.delay(0.01,function()
+                    child:Destroy()
+                end)
+            end
+        end
+    end)
+
     local auto = live.DescendantAdded:Connect(function(desc)
         if not Toggles.NanamiAuto.Value then return end
 	    if desc.Name == "NanamiCutGUI" then
@@ -362,24 +354,21 @@ local function onCharacter(char)
 
     humanoid.Died:Connect(function()
         auto:Disconnect()
+        runBinded:Disconnect()
     end)
+
 end
 
 
-if LocalPlayer.Character then
-    onCharacter(LocalPlayer.Character)
+if char then
+    onCharacter(char)
 end
 
-for _, v in ipairs(workspace.Live:GetChildren()) do
+for _, v in ipairs(live:GetChildren()) do
     addedChild(v)
 end
 
-workspace.Live.ChildAdded:Connect(addedChild)
-
-
-if LocalPlayer.Character then
-    onCharacter(LocalPlayer.Character)
-end
+live.ChildAdded:Connect(addedChild)
 
 LocalPlayer.CharacterAdded:Connect(onCharacter)
 
@@ -400,7 +389,7 @@ RunService.RenderStepped:Connect(function()
 	    OldFov = Camera.FieldOfView
     end
     if Toggles.NoStun.Value then
-        for i,v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+        for i,v in pairs(char:GetDescendants()) do
             if v:IsA('BodyVelocity') then
                 v.MaxForce = Vector3.new(0,9e6,0)
             end
@@ -431,6 +420,22 @@ RunService.RenderStepped:Connect(function()
             workspace.Stands:FindFirstChild(LocalPlayer.Name).HumanoidRootPart.CFrame = CFrame.new(Vector3.new(1,9e4,1))
         end
     end
+    if Toggles.sstp.Value then
+        for i,v in pairs(workspace.Thrown:GetChildren()) do
+            if v.Name == 'ShisuiSus' or v.Name == 'MadaraSus' or v.Name == 'ItachiSus' then
+                v.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(1,9e4,1))
+            end
+        end
+    end
+    if Toggles.nofreeze.Value then
+        if char then
+            pcall(function()
+                if char.Humanoid.WalkSpeed ==0 then
+                    char.Humanoid.WalkSpeed = 64
+                end
+            end)
+        end
+    end
     if Toggles.etp.Value then
         for i,v in pairs(workspace.Thrown:GetDescendants()) do
             if v:IsA('BasePart') and isnetworkowner(v) then
@@ -439,45 +444,6 @@ RunService.RenderStepped:Connect(function()
                     v.CFrame = FindNearestLive(true).CFrame
                 end 
             end
-        end
-    end
-    if Toggles.ESP.Value then
-        for i,ESP in pairs(ESP_TABLE) do
-            ESP.Enabled = true
-            local H = ESP.Parent.Parent:FindFirstChild('Humanoid')
-            local P = Players:FindFirstChild(ESP.Parent.Parent.Name)
-            local HP = H.Health /120
-            local T = ESP.Target
-            local M = P.Charge.Value / 325
-            u2 = T.Mode:FindFirstChild('Ultimate2')
-            if P:FindFirstChild('SecondBar') then
-                Ultimate2.Bar.Size = UDim2.new(P:FindFirstChild('SecondBar').Value/150,0,0.86,0)
-                else
-                if u2 then
-                    u2:Destroy()
-                end
-            end
-            T.Health.Bar.Size = UDim2.new(HP,0,0.95,0)
-            T.Mode.Ultimate.Bar.Size = UDim2.new(M,0,0.86,0)
-            
-            for i = 2,5 do
-                local M = T.Moves:FindFirstChild(tostring(i-1))
-                if M then
-                   CD = M.CD
-                   MV = P.Backpack:GetChildren()[i]
-                   CDR = 0
-                   pcall(function() 
-                        CDR = -20 + MV:GetAttribute("COOLDOWN")
-                    end)
-                   CD.Size = UDim2.new(1,0,CDR/20,0)
-                   N = M.TextLabel
-                   N.Text = MV.Name
-                end
-            end
-        end
-        else
-        for i,ESP in pairs(ESP_TABLE) do
-            ESP.Enabled = false
         end
     end
 end)
